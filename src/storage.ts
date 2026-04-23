@@ -102,6 +102,17 @@ function isComment(value: unknown): value is Comment {
       if (typeof val !== "string") return false;
     }
   }
+  if (v.react !== undefined) {
+    if (!v.react || typeof v.react !== "object") return false;
+    const r = v.react as Record<string, unknown>;
+    if (!Array.isArray(r.stack) || r.stack.some((s) => typeof s !== "string")) return false;
+    if (r.source !== undefined) {
+      if (!r.source || typeof r.source !== "object") return false;
+      const s = r.source as Record<string, unknown>;
+      if (typeof s.fileName !== "string" || typeof s.lineNumber !== "number") return false;
+      if (s.columnNumber !== undefined && typeof s.columnNumber !== "number") return false;
+    }
+  }
   return true;
 }
 

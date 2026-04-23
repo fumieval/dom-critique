@@ -1,5 +1,6 @@
 import { CommentStore } from "./storage.js";
 import { buildSelector, collectAriaAttrs, resolveSelector } from "./selector.js";
+import { getReactInfo } from "./react.js";
 import { toMarkdown } from "./markdown.js";
 import type { Comment, Instance, MountOptions } from "./types.js";
 
@@ -118,12 +119,13 @@ export function mount(options: MountOptions = {}): Instance {
     const tag = el.tagName.toLowerCase();
     const snippet = makeSnippet(el);
     const attrs = collectAriaAttrs(el);
+    const react = getReactInfo(el);
     composerTarget = el;
     composer.open({
       anchor: el,
       selector,
       onSave: (body) => {
-        const created = store.add({ selector, tag, snippet, body, attrs });
+        const created = store.add({ selector, tag, snippet, body, attrs, ...(react ? { react } : {}) });
         focusComment(created.id, { scroll: false });
         afterComposerClosed();
       },

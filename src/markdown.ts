@@ -24,6 +24,16 @@ export function toMarkdown(comments: Comment[], ctx: MarkdownContext = {}): stri
     lines.push(`## Comment ${i + 1}`);
     lines.push(`- Selector: \`${escapeInlineCode(c.selector)}\``);
     lines.push(`- Element: \`${formatElementTag(c.tag, c.attrs)}\``);
+    if (c.react?.stack && c.react.stack.length > 0) {
+      const leaf = c.react.stack[c.react.stack.length - 1];
+      lines.push(`- Component: \`<${leaf}>\``);
+      if (c.react.stack.length > 1) {
+        lines.push(`- React stack: ${c.react.stack.map((n) => `\`<${n}>\``).join(" › ")}`);
+      }
+    }
+    if (c.react?.source) {
+      lines.push(`- Source: \`${formatSource(c.react.source)}\``);
+    }
     if (c.snippet) lines.push(`- Snippet: ${JSON.stringify(c.snippet)}`);
     lines.push(`- Created: ${c.createdAt}`);
     if (c.updatedAt && c.updatedAt !== c.createdAt) {
@@ -39,6 +49,17 @@ export function toMarkdown(comments: Comment[], ctx: MarkdownContext = {}): stri
 
 function escapeInlineCode(s: string): string {
   return s.replace(/`/g, "\\`");
+}
+
+function formatSource(source: { fileName: string; lineNumber: number; columnNumber?: number }): string {
+  let path = source.fileName;
+  // Trim noisy absolute prefixes so the agent gets a project-relative path
+  // when possible (matches /src/, /app/, /pages/, /components/, /lib/).
+  const m = path.match(/\/(src|app|pages|components|lib|packages)\//);
+  if (m && typeof m.index === "number") path = path.slice(m.index + 1);
+  return source.columnNumber
+    ? `${path}:${source.lineNumber}:${source.columnNumber}`
+    : `${path}:${source.lineNumber}`;
 }
 
 function formatElementTag(tag: string, attrs: Record<string, string> | undefined): string {
