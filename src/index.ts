@@ -35,6 +35,9 @@ export function mount(options: MountOptions = {}): Instance {
   // Composer state.
   let composerTarget: Element | null = null;
   let pickerSession: PickerSession | null = null;
+  // Sticky intent: while true, after the composer closes the picker re-arms
+  // automatically so the user can comment on multiple elements in a row.
+  let commentMode = false;
   let activeId: string | null = null;
   let highlightRaf = 0;
 
@@ -48,10 +51,7 @@ export function mount(options: MountOptions = {}): Instance {
   });
 
   const toolbar = createToolbar(overlay.layer, {
-    onToggleMode: () => {
-      if (pickerSession) stopPicker();
-      else startPickerMode();
-    },
+    onToggleMode: () => setCommentMode(!commentMode),
     onCopyMarkdown: async () => {
       const md = exportMarkdown();
       if (navigator.clipboard?.writeText) {
@@ -70,21 +70,29 @@ export function mount(options: MountOptions = {}): Instance {
     repositionAll();
   });
 
-  function startPickerMode() {
-    composer.close();
-    composerTarget = null;
-    toolbar.setActive(true);
+  function setCommentMode(on: boolean) {
+    commentMode = on;
+    toolbar.setActive(on);
+    if (!on) {
+      stopPicker();
+      return;
+    }
+    if (!composer.isOpen()) startPickerSession();
+  }
+
+  function startPickerSession() {
+    if (pickerSession) return;
     pickerSession = startPicker({
       root,
       overlayHost: overlay.host,
       onPick: (el) => {
         pickerSession = null;
-        toolbar.setActive(false);
         beginNew(el);
       },
       onCancel: () => {
+        // Esc inside the picker fully exits comment mode.
         pickerSession = null;
-        toolbar.setActive(false);
+        setCommentMode(false);
       },
     });
   }
@@ -93,7 +101,11 @@ export function mount(options: MountOptions = {}): Instance {
     if (!pickerSession) return;
     pickerSession.stop();
     pickerSession = null;
-    toolbar.setActive(false);
+  }
+
+  function afterComposerClosed() {
+    composerTarget = null;
+    if (commentMode) startPickerSession();
   }
 
   function beginNew(el: Element) {
@@ -110,19 +122,19 @@ export function mount(options: MountOptions = {}): Instance {
       anchor: el,
       selector,
       onSave: (body) => {
-        composerTarget = null;
         const created = store.add({ selector, tag, snippet, body });
         focusComment(created.id, { scroll: false });
+        afterComposerClosed();
       },
-      onCancel: () => {
-        composerTarget = null;
-      },
+      onCancel: afterComposerClosed,
     });
   }
 
   function beginEdit(id: string) {
     const comment = store.getAll().find((c) => c.id === id);
     if (!comment) return;
+    // Pause picking while the user types into the composer.
+    stopPicker();
     const target = resolveSelector(comment.selector) ?? markers.get(id)?.target ?? null;
     const anchor: Element = target ?? toolbar.toggleEl;
     composerTarget = anchor;
@@ -131,12 +143,10 @@ export function mount(options: MountOptions = {}): Instance {
       selector: comment.selector,
       initialBody: comment.body,
       onSave: (body) => {
-        composerTarget = null;
         store.update(id, { body });
+        afterComposerClosed();
       },
-      onCancel: () => {
-        composerTarget = null;
-      },
+      onCancel: afterComposerClosed,
     });
   }
 
@@ -252,7 +262,7 @@ export function mount(options: MountOptions = {}): Instance {
 
   return {
     unmount() {
-      stopPicker();
+      setCommentMode(false);
       composer.close();
       composer.destroy();
       for (const [, entry] of markers) entry.marker.destroy();
