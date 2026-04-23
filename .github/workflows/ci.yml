@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check and bundle
+        run: npm run build
+
+      - name: Show bundle sizes
+        run: |
+          echo "## Bundle sizes" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| File | Size |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| --- | ---: |" >> "$GITHUB_STEP_SUMMARY"
+          for f in dist/dom-critique.global.js dist/dom-critique.global.min.js; do
+            size=$(wc -c < "$f" | awk '{print $1}')
+            gz=$(gzip -c "$f" | wc -c | awk '{print $1}')
+            echo "| \`$f\` | $size B (gzip $gz B) |" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Upload bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dom-critique-bundle
+          path: |
+            dist/dom-critique.global.js
+            dist/dom-critique.global.js.map
+            dist/dom-critique.global.min.js
+            dist/dom-critique.global.min.js.map
+          if-no-files-found: error
+
+      - name: Attach bundle to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/dom-critique.global.js
+            dist/dom-critique.global.js.map
+            dist/dom-critique.global.min.js
+            dist/dom-critique.global.min.js.map
+          generate_release_notes: true

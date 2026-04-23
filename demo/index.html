@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>dom-critique demo</title>
+    <style>
+      :root { color-scheme: light; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        max-width: 720px;
+        margin: 40px auto;
+        padding: 0 20px 120px;
+        line-height: 1.6;
+        color: #1f2328;
+      }
+      header { border-bottom: 1px solid #eaeef2; margin-bottom: 24px; padding-bottom: 12px; }
+      h1 { margin: 0 0 6px; }
+      .lede { color: #57606a; }
+      section { margin: 32px 0; }
+      h2 { border-bottom: 1px solid #eaeef2; padding-bottom: 4px; }
+      blockquote {
+        border-left: 3px solid #d0d7de;
+        margin: 16px 0;
+        padding: 4px 14px;
+        color: #57606a;
+      }
+      code { background: #f6f8fa; padding: 1px 4px; border-radius: 3px; }
+      .card {
+        border: 1px solid #d0d7de;
+        border-radius: 8px;
+        padding: 16px;
+        background: #fafbfc;
+      }
+      ul li { margin: 4px 0; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>dom-critique demo</h1>
+      <p class="lede">Click the floating speech-bubble button (bottom-right) to enter comment mode, then click any element on this page.</p>
+    </header>
+
+    <section id="intro">
+      <h2>Introduction</h2>
+      <p>This page exists to help you exercise the library. Try commenting on different kinds of elements: headings, paragraphs, list items, code, even the card below.</p>
+      <blockquote>"The best UI for code review is one that lives next to the code itself."</blockquote>
+    </section>
+
+    <section id="features">
+      <h2>Features to try</h2>
+      <ul>
+        <li>Click an element while in comment mode to attach a comment.</li>
+        <li>Open the sidebar entry to jump to the original element.</li>
+        <li>Edit or delete an existing comment from the sidebar.</li>
+        <li>Press <code>Copy Markdown</code> to copy every comment to the clipboard.</li>
+        <li>Reload the page — comments persist via <code>localStorage</code>.</li>
+      </ul>
+    </section>
+
+    <section id="card">
+      <h2>A card</h2>
+      <div class="card">
+        <p>This is a card. Try anchoring a comment to the entire card or to just this paragraph inside it.</p>
+        <p>Nested elements should still produce stable, unique selectors.</p>
+      </div>
+    </section>
+
+    <script type="module">
+      import { mount } from "../dist/index.js";
+      window.__critique = mount();
+    </script>
+  </body>
+</html>

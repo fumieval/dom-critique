@@ -1,0 +1,44 @@
+{
+  "name": "dom-critique",
+  "version": "0.1.0",
+  "description": "Attach floating comments to any DOM element. Persists to localStorage. Exports as Markdown annotated with CSS selectors.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "unpkg": "./dist/dom-critique.global.min.js",
+  "jsdelivr": "./dist/dom-critique.global.min.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./global": "./dist/dom-critique.global.js",
+    "./global.min": "./dist/dom-critique.global.min.js"
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "npm run build:types && npm run build:bundle",
+    "build:types": "tsc",
+    "build:bundle": "node scripts/bundle.mjs",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "keywords": [
+    "dom",
+    "comment",
+    "annotation",
+    "review",
+    "markdown",
+    "localstorage"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.28.0",
+    "typescript": "^5.5.4"
+  }
+}
