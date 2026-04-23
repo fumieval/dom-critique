@@ -36,7 +36,7 @@ export function mount(options: MountOptions = {}): Instance {
   let composerTarget: Element | null = null;
   let pickerSession: PickerSession | null = null;
   let activeId: string | null = null;
-  let highlightTimer: number | undefined;
+  let highlightRaf = 0;
 
   const composer = createComposer(overlay.layer);
 
@@ -153,17 +153,39 @@ export function mount(options: MountOptions = {}): Instance {
   }
 
   function showTargetHighlight(target: Element) {
-    const rect = target.getBoundingClientRect();
-    if (rect.width === 0 && rect.height === 0) return;
-    targetHighlight.style.top = `${rect.top}px`;
-    targetHighlight.style.left = `${rect.left}px`;
-    targetHighlight.style.width = `${rect.width}px`;
-    targetHighlight.style.height = `${rect.height}px`;
+    if (highlightRaf) cancelAnimationFrame(highlightRaf);
+
+    const positionTo = (el: Element) => {
+      const r = el.getBoundingClientRect();
+      if (r.width === 0 && r.height === 0) return false;
+      targetHighlight.style.top = `${r.top}px`;
+      targetHighlight.style.left = `${r.left}px`;
+      targetHighlight.style.width = `${r.width}px`;
+      targetHighlight.style.height = `${r.height}px`;
+      return true;
+    };
+
+    if (!positionTo(target)) return;
     targetHighlight.classList.add("visible");
-    if (highlightTimer) window.clearTimeout(highlightTimer);
-    highlightTimer = window.setTimeout(() => {
-      targetHighlight.classList.remove("visible");
-    }, HIGHLIGHT_DURATION_MS);
+
+    // Track the target every frame so the highlight follows smooth-scroll
+    // animations and any other layout shifts.
+    const start = performance.now();
+    const tick = (now: number) => {
+      if (!document.contains(target)) {
+        targetHighlight.classList.remove("visible");
+        highlightRaf = 0;
+        return;
+      }
+      positionTo(target);
+      if (now - start >= HIGHLIGHT_DURATION_MS) {
+        targetHighlight.classList.remove("visible");
+        highlightRaf = 0;
+        return;
+      }
+      highlightRaf = requestAnimationFrame(tick);
+    };
+    highlightRaf = requestAnimationFrame(tick);
   }
 
   function syncFromStore(comments: Comment[]) {
@@ -239,7 +261,7 @@ export function mount(options: MountOptions = {}): Instance {
       toolbar.destroy();
       pump.destroy();
       unsubscribe();
-      if (highlightTimer) window.clearTimeout(highlightTimer);
+      if (highlightRaf) cancelAnimationFrame(highlightRaf);
       overlay.destroy();
     },
     getComments() {

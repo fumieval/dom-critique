@@ -20,7 +20,7 @@ A pre-bundled IIFE build is published with every release. Drop it into any
 HTML page; the library exposes itself as the `DomCritique` global.
 
 ```html
-<script src="https://unpkg.com/dom-critique/dist/dom-critique.global.min.js"></script>
+<script src="https://github.com/fumieval/dom-critique/releases/download/v0.0.2/dom-critique.global.min.js"></script>
 <script>
   const critique = DomCritique.mount();
 </script>
