@@ -23,7 +23,7 @@ export function toMarkdown(comments: Comment[], ctx: MarkdownContext = {}): stri
   comments.forEach((c, i) => {
     lines.push(`## Comment ${i + 1}`);
     lines.push(`- Selector: \`${escapeInlineCode(c.selector)}\``);
-    lines.push(`- Element: \`<${c.tag}>\``);
+    lines.push(`- Element: \`${formatElementTag(c.tag, c.attrs)}\``);
     if (c.snippet) lines.push(`- Snippet: ${JSON.stringify(c.snippet)}`);
     lines.push(`- Created: ${c.createdAt}`);
     if (c.updatedAt && c.updatedAt !== c.createdAt) {
@@ -39,6 +39,16 @@ export function toMarkdown(comments: Comment[], ctx: MarkdownContext = {}): stri
 
 function escapeInlineCode(s: string): string {
   return s.replace(/`/g, "\\`");
+}
+
+function formatElementTag(tag: string, attrs: Record<string, string> | undefined): string {
+  if (!attrs) return `<${tag}>`;
+  const parts: string[] = [];
+  for (const name of Object.keys(attrs)) {
+    parts.push(`${name}=${JSON.stringify(attrs[name])}`);
+  }
+  if (parts.length === 0) return `<${tag}>`;
+  return `<${tag} ${parts.join(" ")}>`;
 }
 
 function blockquote(body: string): string {

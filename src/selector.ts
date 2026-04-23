@@ -103,6 +103,26 @@ function isUnique(doc: Document, selector: string, target: Element): boolean {
 }
 
 /**
+ * Collect ARIA-related attributes from `el`: `role` and any `aria-*`
+ * attribute. Returns them in a stable, deterministic order.
+ */
+export function collectAriaAttrs(el: Element): Record<string, string> {
+  const out: Record<string, string> = {};
+  const role = el.getAttribute("role");
+  if (role) out.role = role;
+  const names: string[] = [];
+  for (const attr of Array.from(el.attributes)) {
+    if (attr.name.startsWith("aria-")) names.push(attr.name);
+  }
+  names.sort();
+  for (const name of names) {
+    const value = el.getAttribute(name);
+    if (value !== null) out[name] = value;
+  }
+  return out;
+}
+
+/**
  * Resolve a selector built by `buildSelector` back to its element. Returns
  * `null` if it does not resolve uniquely.
  */

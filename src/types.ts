@@ -6,6 +6,11 @@ export interface Comment {
   body: string;
   createdAt: string;
   updatedAt: string;
+  /**
+   * ARIA-related attributes captured from the element at comment-creation
+   * time (e.g. `role`, `aria-label`). Optional for backward-compat.
+   */
+  attrs?: Record<string, string>;
 }
 
 export interface MountOptions {

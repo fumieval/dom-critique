@@ -85,15 +85,24 @@ export class CommentStore {
 function isComment(value: unknown): value is Comment {
   if (!value || typeof value !== "object") return false;
   const v = value as Record<string, unknown>;
-  return (
-    typeof v.id === "string" &&
-    typeof v.selector === "string" &&
-    typeof v.tag === "string" &&
-    typeof v.snippet === "string" &&
-    typeof v.body === "string" &&
-    typeof v.createdAt === "string" &&
-    typeof v.updatedAt === "string"
-  );
+  if (
+    typeof v.id !== "string" ||
+    typeof v.selector !== "string" ||
+    typeof v.tag !== "string" ||
+    typeof v.snippet !== "string" ||
+    typeof v.body !== "string" ||
+    typeof v.createdAt !== "string" ||
+    typeof v.updatedAt !== "string"
+  ) {
+    return false;
+  }
+  if (v.attrs !== undefined) {
+    if (!v.attrs || typeof v.attrs !== "object") return false;
+    for (const val of Object.values(v.attrs as Record<string, unknown>)) {
+      if (typeof val !== "string") return false;
+    }
+  }
+  return true;
 }
 
 function makeId(): string {
