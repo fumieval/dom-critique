@@ -1,7 +1,6 @@
 import { makeInteractive } from "./overlay.js";
 
 export interface ComposerOpenOptions {
-  anchor: Element;
   selector: string;
   initialBody?: string;
   onSave: (body: string) => void;
@@ -9,9 +8,13 @@ export interface ComposerOpenOptions {
 }
 
 export interface Composer {
+  /**
+   * Root DOM element. The owner (typically the cards column) is responsible
+   * for positioning this element by setting `style.top`.
+   */
+  el: HTMLDivElement;
   open(opts: ComposerOpenOptions): void;
   close(): void;
-  reposition(): void;
   isOpen(): boolean;
   destroy(): void;
 }
@@ -19,7 +22,6 @@ export interface Composer {
 export function createComposer(parent: HTMLElement): Composer {
   const root = document.createElement("div");
   root.className = "composer";
-  root.style.display = "none";
   makeInteractive(root);
 
   const meta = document.createElement("div");
@@ -29,7 +31,7 @@ export function createComposer(parent: HTMLElement): Composer {
   textarea.placeholder = "Write a comment…";
 
   const actions = document.createElement("div");
-  actions.className = "actions";
+  actions.className = "composer-actions";
 
   const cancelBtn = document.createElement("button");
   cancelBtn.type = "button";
@@ -55,29 +57,9 @@ export function createComposer(parent: HTMLElement): Composer {
     saveBtn.disabled = textarea.value.trim().length === 0;
   }
 
-  function position() {
-    if (!current) return;
-    const rect = current.anchor.getBoundingClientRect();
-    const composerW = root.offsetWidth || 280;
-    const composerH = root.offsetHeight || 140;
-    const margin = 8;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-
-    let top = rect.bottom + margin;
-    if (top + composerH > vh - 8) top = Math.max(8, rect.top - composerH - margin);
-
-    let left = rect.left;
-    if (left + composerW > vw - 8) left = Math.max(8, vw - composerW - 8);
-    if (left < 8) left = 8;
-
-    root.style.top = `${top}px`;
-    root.style.left = `${left}px`;
-  }
-
   function close() {
     current = null;
-    root.style.display = "none";
+    root.classList.remove("open");
     textarea.value = "";
   }
 
@@ -114,21 +96,19 @@ export function createComposer(parent: HTMLElement): Composer {
   cancelBtn.addEventListener("click", onCancel);
 
   return {
+    el: root,
     open(opts) {
       current = opts;
       meta.textContent = opts.selector;
       textarea.value = opts.initialBody ?? "";
       updateSaveDisabled();
-      root.style.display = "flex";
-      position();
-      // Defer focus so layout settles before measuring caret position.
+      root.classList.add("open");
       requestAnimationFrame(() => {
         textarea.focus();
         textarea.setSelectionRange(textarea.value.length, textarea.value.length);
       });
     },
     close,
-    reposition: position,
     isOpen() {
       return current !== null;
     },

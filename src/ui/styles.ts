@@ -40,6 +40,7 @@ textarea {
 .side-left  .toolbar { left: 20px; }
 
 .fab {
+  position: relative;
   width: 44px;
   height: 44px;
   border-radius: 50%;
@@ -71,6 +72,68 @@ textarea {
   font-weight: 600;
 }
 
+/* ---------- FAB tooltip (custom; works inside Shadow DOM) ---------- */
+.fab[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%) translateX(4px);
+  background: rgba(15, 23, 42, 0.94);
+  color: #fff;
+  padding: 5px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+  z-index: 1;
+}
+.fab[data-tooltip]::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border: 5px solid transparent;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  z-index: 1;
+}
+/* default position: tooltip on the LEFT of the FAB (used for side-right) */
+.fab[data-tooltip]::after {
+  right: calc(100% + 10px);
+}
+.fab[data-tooltip]::before {
+  right: calc(100% + 1px);
+  border-left-color: rgba(15, 23, 42, 0.94);
+  transform: translateY(-50%) translateX(4px);
+}
+/* flip to the RIGHT side when the toolbar lives on the left */
+.side-left .fab[data-tooltip]::after {
+  right: auto;
+  left: calc(100% + 10px);
+  transform: translateY(-50%) translateX(-4px);
+}
+.side-left .fab[data-tooltip]::before {
+  right: auto;
+  left: calc(100% + 1px);
+  border-left-color: transparent;
+  border-right-color: rgba(15, 23, 42, 0.94);
+  transform: translateY(-50%) translateX(-4px);
+}
+.fab[data-tooltip]:hover::after,
+.fab[data-tooltip]:focus-visible::after,
+.fab[data-tooltip]:hover::before,
+.fab[data-tooltip]:focus-visible::before {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
 /* ---------- hover outline (used during pick + active highlight) ---------- */
 .hover-outline {
   position: fixed;
@@ -86,21 +149,18 @@ textarea {
 .marker {
   position: fixed;
   z-index: 2147483550;
-  width: 22px;
-  height: 22px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: #ffd23f;
-  color: #1f2328;
-  font-weight: 600;
-  font-size: 11px;
-  display: grid;
-  place-items: center;
   border: 2px solid #fff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
   transform: translate(-50%, -50%);
+  padding: 0;
+  font-size: 0;
 }
-.marker:hover { background: #ffcf24; }
-.marker.missing { background: #aaa; color: #fff; }
+.marker:hover { background: #ffcf24; transform: translate(-50%, -50%) scale(1.15); }
+.marker.missing { background: #aaa; }
 .marker.pulse { animation: pulse 0.9s ease 2; }
 @keyframes pulse {
   0%   { box-shadow: 0 0 0 0 rgba(255, 210, 63, 0.7); }
@@ -108,20 +168,23 @@ textarea {
   100% { box-shadow: 0 0 0 0 rgba(255, 210, 63, 0); }
 }
 
-/* ---------- composer popover ---------- */
+/* ---------- composer (rendered as a card in the margin column) ---------- */
 .composer {
-  position: fixed;
-  z-index: 2147483600;
-  width: 280px;
+  position: absolute;
+  left: 0;
+  width: 100%;
   background: #fff;
-  border: 1px solid #d0d7de;
+  border: 1px solid #1f6feb;
   border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 8px 24px rgba(31, 111, 235, 0.22);
   padding: 10px;
-  display: flex;
+  display: none;
   flex-direction: column;
   gap: 8px;
+  transition: top 0.18s ease;
+  pointer-events: auto;
 }
+.composer.open { display: flex; }
 .composer .target-meta {
   font-size: 11px;
   color: #6e7781;
@@ -139,7 +202,7 @@ textarea {
   outline: none;
 }
 .composer textarea:focus { border-color: #1f6feb; box-shadow: 0 0 0 3px rgba(31,111,235,0.2); }
-.composer .actions {
+.composer .composer-actions {
   display: flex;
   justify-content: flex-end;
   gap: 6px;
@@ -159,6 +222,42 @@ textarea {
 .composer .btn.primary:hover { background: #2a78f0; }
 .composer .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* ---------- pinned outline (visible while composer is open) ---------- */
+.pin-outline {
+  position: fixed;
+  pointer-events: none;
+  border: 2px solid #1f6feb;
+  background: rgba(31, 111, 235, 0.06);
+  border-radius: 3px;
+  z-index: 2147483450;
+  opacity: 0;
+  transition: opacity 0.15s ease, top 0.15s ease, left 0.15s ease,
+    width 0.15s ease, height 0.15s ease;
+}
+.pin-outline.visible { opacity: 1; }
+
+/* ---------- connector lines (target ↔ card / composer) ---------- */
+.connector-layer {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2147483470;
+  overflow: visible;
+}
+.connector-layer line {
+  stroke: #b9c1cb;
+  stroke-width: 1;
+  fill: none;
+  transition: stroke 0.15s ease, stroke-width 0.15s ease;
+}
+.connector-layer line.emphasized {
+  stroke: #1f6feb;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
 /* ---------- floating cards (margin column) ---------- */
 .card-column {
   position: fixed;
@@ -166,7 +265,7 @@ textarea {
   bottom: 0;
   width: 300px;
   pointer-events: none; /* let individual cards opt in */
-  z-index: 2147483400;
+  z-index: 2147483490;
 }
 .card-column.side-right { right: 16px; }
 .card-column.side-left  { left: 16px; }
@@ -190,11 +289,15 @@ textarea {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.14);
   transform: translateY(-1px);
 }
-.card.active {
+.card.active,
+.card:focus,
+.card:focus-within {
   border-color: #1f6feb;
   box-shadow: 0 8px 20px rgba(31, 111, 235, 0.22);
+  outline: none;
 }
 .card.missing { opacity: 0.7; }
+.card.hidden-editing { display: none; }
 .card.pulse { animation: cardPulse 0.9s ease 1; }
 @keyframes cardPulse {
   0%   { box-shadow: 0 0 0 0 rgba(31, 111, 235, 0.45); }
@@ -207,18 +310,6 @@ textarea {
   align-items: center;
   gap: 6px;
 }
-.card-index {
-  display: inline-grid;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #ffd23f;
-  font-size: 10px;
-  font-weight: 600;
-  flex: 0 0 auto;
-}
-.card.missing .card-index { background: #aaa; color: #fff; }
 .card-tag {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11px;

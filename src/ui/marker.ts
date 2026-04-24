@@ -2,7 +2,6 @@ import { makeInteractive } from "./overlay.js";
 
 export interface Marker {
   el: HTMLButtonElement;
-  setIndex(index: number): void;
   setMissing(missing: boolean): void;
   positionTo(target: Element | null): void;
   pulse(): void;
@@ -10,15 +9,20 @@ export interface Marker {
 }
 
 export interface MarkerOptions {
-  index: number;
+  side: "right" | "left";
   onClick: () => void;
+  /** Fired when the cursor enters the marker; called with `false` on leave. */
+  onHover?: (hovering: boolean) => void;
+  /** Fired when keyboard focus enters/leaves the marker. */
+  onFocus?: (focused: boolean) => void;
 }
 
 export function createMarker(parent: HTMLElement, opts: MarkerOptions): Marker {
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "marker";
-  btn.textContent = String(opts.index);
+  btn.title = "Open comment";
+  btn.setAttribute("aria-label", "Open comment");
   makeInteractive(btn);
 
   const click = (e: MouseEvent) => {
@@ -26,7 +30,15 @@ export function createMarker(parent: HTMLElement, opts: MarkerOptions): Marker {
     e.stopPropagation();
     opts.onClick();
   };
+  const enter = () => opts.onHover?.(true);
+  const leave = () => opts.onHover?.(false);
+  const focus = () => opts.onFocus?.(true);
+  const blur = () => opts.onFocus?.(false);
   btn.addEventListener("click", click);
+  btn.addEventListener("mouseenter", enter);
+  btn.addEventListener("mouseleave", leave);
+  btn.addEventListener("focus", focus);
+  btn.addEventListener("blur", blur);
   parent.appendChild(btn);
 
   function positionTo(target: Element | null) {
@@ -39,18 +51,15 @@ export function createMarker(parent: HTMLElement, opts: MarkerOptions): Marker {
       btn.style.display = "none";
       return;
     }
-    btn.style.display = "grid";
-    // Pin to the top-right corner of the element.
-    btn.style.top = `${rect.top}px`;
-    btn.style.left = `${rect.right}px`;
+    btn.style.display = "block";
+    // Pin to the midpoint of the element's right (or left) edge so it lines
+    // up with the connector line drawn from the same point.
+    btn.style.top = `${rect.top + rect.height / 2}px`;
+    btn.style.left = `${opts.side === "left" ? rect.left : rect.right}px`;
   }
 
   return {
     el: btn,
-    setIndex(index: number) {
-      btn.textContent = String(index);
-      btn.title = `Comment ${index}`;
-    },
     setMissing(missing: boolean) {
       btn.classList.toggle("missing", missing);
     },
@@ -63,6 +72,10 @@ export function createMarker(parent: HTMLElement, opts: MarkerOptions): Marker {
     },
     destroy() {
       btn.removeEventListener("click", click);
+      btn.removeEventListener("mouseenter", enter);
+      btn.removeEventListener("mouseleave", leave);
+      btn.removeEventListener("focus", focus);
+      btn.removeEventListener("blur", blur);
       btn.remove();
     },
   };

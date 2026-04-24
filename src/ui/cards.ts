@@ -14,15 +14,50 @@ export interface CardsOptions {
   onJump: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
+  /**
+   * Fired when the cursor enters a card (`id`) and again with `null` when it
+   * leaves. Useful for showing a hover highlight on the linked element.
+   */
+  onHover?: (id: string | null) => void;
+  /**
+   * Fired when keyboard focus enters a card or one of its descendants (`id`)
+   * and again with `null` when focus leaves it.
+   */
+  onFocus?: (id: string | null) => void;
+}
+
+export interface ComposerSlot {
+  /** The composer DOM element; must be (or become) a child of `column`. */
+  el: HTMLElement;
+  /**
+   * Viewport-relative Y of the target's vertical midpoint. The layout will
+   * try to center the composer on this Y (best-effort, subject to stacking).
+   */
+  targetMidpoint: number;
+  /** When set, the corresponding card is hidden (used during editing). */
+  hideCommentId?: string;
 }
 
 export interface Cards {
+  /** The column root. Use it as the parent for the composer element. */
+  column: HTMLDivElement;
   /** Replace the full set of cards (creates / removes as needed). */
   setEntries(entries: CardEntry[]): void;
   /** Mark a card as active (for visual emphasis). */
   setActive(id: string | null): void;
+  /**
+   * Register (or clear) the composer's slot in the layout so regular cards
+   * stack around it. Pass `null` when the composer is closed.
+   */
+  setComposerSlot(slot: ComposerSlot | null): void;
   /** Re-run vertical layout based on current target rects. */
   layout(): void;
+  /**
+   * Returns the rendered card element for the given comment id, or `null`
+   * if no card is mounted (e.g. the comment is currently being edited and
+   * its card is hidden).
+   */
+  getCardElement(id: string): HTMLElement | null;
   destroy(): void;
 }
 
@@ -30,7 +65,6 @@ interface CardNode {
   el: HTMLDivElement;
   bodyEl: HTMLDivElement;
   tagEl: HTMLSpanElement;
-  indexEl: HTMLSpanElement;
   cleanup: () => void;
 }
 
@@ -42,20 +76,18 @@ export function createCards(parent: HTMLElement, opts: CardsOptions): Cards {
   const nodes = new Map<string, CardNode>();
   let entries: CardEntry[] = [];
   let activeId: string | null = null;
+  let composerSlot: ComposerSlot | null = null;
 
-  function buildCard(entry: CardEntry, index: number): CardNode {
+  function buildCard(entry: CardEntry): CardNode {
     const el = document.createElement("div");
     el.className = "card";
     el.dataset.id = entry.comment.id;
+    el.tabIndex = 0;
     if (!entry.target) el.classList.add("missing");
     makeInteractive(el);
 
     const head = document.createElement("div");
     head.className = "card-head";
-
-    const indexEl = document.createElement("span");
-    indexEl.className = "card-index";
-    indexEl.textContent = String(index + 1);
 
     const tagEl = document.createElement("span");
     tagEl.className = "card-tag";
@@ -81,7 +113,6 @@ export function createCards(parent: HTMLElement, opts: CardsOptions): Cards {
     actions.appendChild(editBtn);
     actions.appendChild(deleteBtn);
 
-    head.appendChild(indexEl);
     head.appendChild(tagEl);
     head.appendChild(actions);
 
@@ -106,28 +137,44 @@ export function createCards(parent: HTMLElement, opts: CardsOptions): Cards {
       e.stopPropagation();
       if (confirm("Delete this comment?")) opts.onDelete(entry.comment.id);
     };
+    const onEnter = () => opts.onHover?.(entry.comment.id);
+    const onLeave = () => opts.onHover?.(null);
+    const onFocusIn = () => opts.onFocus?.(entry.comment.id);
+    const onFocusOut = (e: FocusEvent) => {
+      // `focusout` bubbles; only treat it as "focus left the card" when the
+      // new focus target is outside the card subtree.
+      const next = e.relatedTarget as Node | null;
+      if (next && el.contains(next)) return;
+      opts.onFocus?.(null);
+    };
     el.addEventListener("click", onCardClick);
     editBtn.addEventListener("click", onEdit);
     deleteBtn.addEventListener("click", onDelete);
+    el.addEventListener("mouseenter", onEnter);
+    el.addEventListener("mouseleave", onLeave);
+    el.addEventListener("focusin", onFocusIn);
+    el.addEventListener("focusout", onFocusOut);
 
     return {
       el,
       bodyEl,
       tagEl,
-      indexEl,
       cleanup() {
         el.removeEventListener("click", onCardClick);
         editBtn.removeEventListener("click", onEdit);
         deleteBtn.removeEventListener("click", onDelete);
+        el.removeEventListener("mouseenter", onEnter);
+        el.removeEventListener("mouseleave", onLeave);
+        el.removeEventListener("focusin", onFocusIn);
+        el.removeEventListener("focusout", onFocusOut);
       },
     };
   }
 
-  function updateCardContent(node: CardNode, entry: CardEntry, index: number) {
+  function updateCardContent(node: CardNode, entry: CardEntry) {
     node.el.dataset.id = entry.comment.id;
     node.el.classList.toggle("missing", !entry.target);
     node.el.classList.toggle("active", entry.comment.id === activeId);
-    node.indexEl.textContent = String(index + 1);
     node.tagEl.textContent = entry.target
       ? `<${entry.comment.tag}>`
       : `<${entry.comment.tag}> · missing`;
@@ -141,15 +188,15 @@ export function createCards(parent: HTMLElement, opts: CardsOptions): Cards {
     entries = next.slice();
     const seen = new Set<string>();
 
-    next.forEach((entry, index) => {
+    next.forEach((entry) => {
       seen.add(entry.comment.id);
       let node = nodes.get(entry.comment.id);
       if (!node) {
-        node = buildCard(entry, index);
+        node = buildCard(entry);
         nodes.set(entry.comment.id, node);
         root.appendChild(node.el);
       } else {
-        updateCardContent(node, entry, index);
+        updateCardContent(node, entry);
       }
     });
 
@@ -180,47 +227,65 @@ export function createCards(parent: HTMLElement, opts: CardsOptions): Cards {
   }
 
   function layout() {
-    if (entries.length === 0) return;
+    // Hide the card whose comment is currently being edited (if any).
+    const hiddenId = composerSlot?.hideCommentId;
+    for (const [id, node] of nodes) {
+      node.el.classList.toggle("hidden-editing", hiddenId === id);
+    }
 
-    type Item = { id: string; el: HTMLDivElement; desiredTop: number; height: number };
+    type Item = { el: HTMLElement; targetMidpoint: number };
     const items: Item[] = [];
 
     for (const entry of entries) {
+      if (hiddenId && entry.comment.id === hiddenId) continue;
       const node = nodes.get(entry.comment.id);
       if (!node) continue;
       const rect = entry.target?.getBoundingClientRect();
-      const desiredTop = rect && (rect.width > 0 || rect.height > 0)
-        ? rect.top
+      const targetMidpoint = rect && (rect.width > 0 || rect.height > 0)
+        ? rect.top + rect.height / 2
         : Number.POSITIVE_INFINITY;
-      items.push({
-        id: entry.comment.id,
-        el: node.el,
-        desiredTop,
-        height: 0,
-      });
+      items.push({ el: node.el, targetMidpoint });
     }
 
-    // Order by desired top so cards naturally follow document flow; missing
-    // ones (Infinity) land at the bottom.
-    items.sort((a, b) => a.desiredTop - b.desiredTop);
+    if (composerSlot) {
+      items.push({ el: composerSlot.el, targetMidpoint: composerSlot.targetMidpoint });
+    }
 
-    // Greedy top-down stack with a minimum gap.
+    if (items.length === 0) return;
+
+    // Order by target midpoint so cards naturally follow document flow;
+    // missing ones (Infinity) land at the bottom.
+    items.sort((a, b) => a.targetMidpoint - b.targetMidpoint);
+
+    // Greedy top-down stack: best-effort center each card on its target
+    // midpoint, but never let two overlap (push down as needed).
     let cursor = COLUMN_MARGIN;
     for (const item of items) {
-      const desired = Number.isFinite(item.desiredTop) ? item.desiredTop : cursor;
+      const h = item.el.offsetHeight || 80;
+      const desired = Number.isFinite(item.targetMidpoint)
+        ? item.targetMidpoint - h / 2
+        : cursor;
       const top = Math.max(cursor, desired);
       item.el.style.top = `${top}px`;
-      // Measure after positioning so layout reflects current width.
-      const h = item.el.offsetHeight || 80;
-      item.height = h;
       cursor = top + h + CARD_GAP;
     }
   }
 
   return {
+    column: root,
     setEntries,
     setActive,
+    setComposerSlot(slot: ComposerSlot | null) {
+      composerSlot = slot;
+      layout();
+    },
     layout,
+    getCardElement(id: string) {
+      const node = nodes.get(id);
+      if (!node) return null;
+      if (node.el.classList.contains("hidden-editing")) return null;
+      return node.el;
+    },
     destroy() {
       for (const node of nodes.values()) {
         node.cleanup();

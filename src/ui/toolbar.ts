@@ -6,6 +6,8 @@ const COPY_ICON = `<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M0 6.75C
 export interface ToolbarOptions {
   onToggleMode: () => void;
   onCopyMarkdown: () => Promise<void> | void;
+  /** Optional human-readable shortcut hint shown in the toggle's tooltip. */
+  shortcutLabel?: string;
 }
 
 export interface Toolbar {
@@ -21,17 +23,21 @@ export function createToolbar(parent: HTMLElement, opts: ToolbarOptions): Toolba
   root.className = "toolbar";
   makeInteractive(root);
 
+  const hint = opts.shortcutLabel ? ` (${opts.shortcutLabel})` : "";
+  const inactiveTitle = `Add comment${hint}`;
+  const activeTitle = `Exit comment mode${hint}`;
+
   const toggleBtn = document.createElement("button");
   toggleBtn.type = "button";
   toggleBtn.className = "fab";
-  toggleBtn.title = "Add comment (toggle comment mode)";
-  toggleBtn.setAttribute("aria-label", "Toggle comment mode");
+  toggleBtn.setAttribute("data-tooltip", inactiveTitle);
+  toggleBtn.setAttribute("aria-label", inactiveTitle);
   toggleBtn.innerHTML = COMMENT_ICON;
 
   const copyBtn = document.createElement("button");
   copyBtn.type = "button";
   copyBtn.className = "fab fab-secondary";
-  copyBtn.title = "Copy all comments as Markdown";
+  copyBtn.setAttribute("data-tooltip", "Copy all comments as Markdown");
   copyBtn.setAttribute("aria-label", "Copy all comments as Markdown");
   copyBtn.innerHTML = COPY_ICON;
   copyBtn.style.display = "none";
@@ -80,7 +86,9 @@ export function createToolbar(parent: HTMLElement, opts: ToolbarOptions): Toolba
     toggleEl: toggleBtn,
     setActive(active: boolean) {
       toggleBtn.classList.toggle("active", active);
-      toggleBtn.title = active ? "Exit comment mode" : "Add comment (toggle comment mode)";
+      const label = active ? activeTitle : inactiveTitle;
+      toggleBtn.setAttribute("data-tooltip", label);
+      toggleBtn.setAttribute("aria-label", label);
     },
     setCommentCount(n: number) {
       copyBtn.style.display = n > 0 ? "grid" : "none";

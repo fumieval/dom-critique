@@ -43,6 +43,12 @@ const critique = mount({
   root: document.body,
   // Optional. "right" (default) or "left".
   side: "right",
+  // Optional. Keyboard shortcut to toggle comment mode. Defaults to "c".
+  // Format: `+`-separated, last token is the key. Modifiers:
+  //   Mod (Cmd on macOS, Ctrl elsewhere), Cmd, Ctrl, Alt/Option, Shift, Meta.
+  // Examples: "c", "Mod+Shift+M", "Alt+M". Pass `false` to disable.
+  // Single-key shortcuts auto-disable while focus is in an input/textarea.
+  shortcut: "c",
 });
 
 // Programmatic API

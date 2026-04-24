@@ -3,72 +3,742 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>dom-critique demo</title>
+    <title>dom-critique demo · Lumen Analytics</title>
     <style>
-      :root { color-scheme: light; }
+      :root {
+        color-scheme: light;
+        --bg: #f5f7fb;
+        --surface: #ffffff;
+        --border: #e1e6ee;
+        --ink: #1d2433;
+        --muted: #5b6477;
+        --accent: #4361ee;
+        --accent-soft: #eaf0ff;
+        --good: #1f9d55;
+        --warn: #d97706;
+        --bad: #dc2626;
+        --gutter: 340px; /* space reserved for the comment column */
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
       body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        max-width: 720px;
-        margin: 40px auto;
-        padding: 0 20px 120px;
-        line-height: 1.6;
-        color: #1f2328;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        line-height: 1.55;
       }
-      header { border-bottom: 1px solid #eaeef2; margin-bottom: 24px; padding-bottom: 12px; }
-      h1 { margin: 0 0 6px; }
-      .lede { color: #57606a; }
-      section { margin: 32px 0; }
-      h2 { border-bottom: 1px solid #eaeef2; padding-bottom: 4px; }
-      blockquote {
-        border-left: 3px solid #d0d7de;
-        margin: 16px 0;
-        padding: 4px 14px;
-        color: #57606a;
+      a { color: var(--accent); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      h1, h2, h3, h4 { line-height: 1.2; margin: 0 0 8px; }
+
+      /* ----- top navigation ----- */
+      .topnav {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        padding: 10px 24px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding-right: calc(var(--gutter) + 24px);
       }
-      code { background: #f6f8fa; padding: 1px 4px; border-radius: 3px; }
-      .card {
-        border: 1px solid #d0d7de;
-        border-radius: 8px;
+      .topnav .brand {
+        display: flex; align-items: center; gap: 8px;
+        font-weight: 700; color: var(--ink);
+      }
+      .topnav .brand .dot {
+        width: 22px; height: 22px; border-radius: 6px;
+        background: linear-gradient(135deg, #4361ee, #8b5cf6);
+      }
+      .topnav nav { display: flex; gap: 16px; flex: 1; }
+      .topnav nav a { color: var(--muted); font-weight: 500; }
+      .topnav nav a.active { color: var(--ink); }
+      .topnav .cta {
+        background: var(--accent); color: white; padding: 8px 14px;
+        border-radius: 6px; font-weight: 600; font-size: 14px;
+      }
+
+      /* ----- main shell with left sidebar + content ----- */
+      .shell {
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        gap: 24px;
+        max-width: calc(100vw - var(--gutter));
+        padding: 24px;
+      }
+      @media (max-width: 1100px) {
+        :root { --gutter: 0px; }
+        .shell { grid-template-columns: 1fr; }
+        .topnav { padding-right: 24px; }
+      }
+
+      .sidebar {
+        position: sticky;
+        align-self: start;
+        top: 76px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px;
+      }
+      .sidebar h4 {
+        font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+        color: var(--muted); margin: 12px 0 6px;
+      }
+      .sidebar ul { list-style: none; padding: 0; margin: 0; }
+      .sidebar li a {
+        display: flex; align-items: center; gap: 8px;
+        padding: 6px 8px; border-radius: 6px;
+        color: var(--ink); font-size: 14px;
+      }
+      .sidebar li a:hover { background: var(--accent-soft); text-decoration: none; }
+      .sidebar li a.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+      .sidebar .badge {
+        margin-left: auto; font-size: 11px; padding: 1px 6px;
+        background: var(--border); border-radius: 999px; color: var(--muted);
+      }
+
+      .content { min-width: 0; display: flex; flex-direction: column; gap: 32px; }
+
+      /* ----- hero ----- */
+      .hero {
+        position: relative;
+        background: linear-gradient(135deg, #1f2a55 0%, #4361ee 60%, #8b5cf6 100%);
+        color: white;
+        border-radius: 14px;
+        padding: 36px;
+        overflow: hidden;
+      }
+      .hero h1 { font-size: 32px; max-width: 18ch; }
+      .hero p { max-width: 56ch; opacity: 0.92; margin: 0 0 18px; }
+      .hero .actions { display: flex; gap: 10px; }
+      .hero .btn-primary, .hero .btn-ghost {
+        padding: 10px 16px; border-radius: 8px; font-weight: 600; font-size: 14px;
+        border: 0; cursor: pointer;
+      }
+      .hero .btn-primary { background: white; color: var(--accent); }
+      .hero .btn-ghost { background: rgba(255,255,255,0.12); color: white; border: 1px solid rgba(255,255,255,0.4); }
+      .hero .ribbon {
+        position: absolute; right: -40px; top: 18px;
+        background: rgba(255,255,255,0.15); color: white;
+        padding: 4px 60px; transform: rotate(35deg); font-size: 12px; letter-spacing: 0.08em;
+      }
+
+      /* ----- stats row ----- */
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+      }
+      .stat {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px 16px;
+      }
+      .stat .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+      .stat .value { font-size: 26px; font-weight: 700; margin-top: 4px; }
+      .stat .delta { font-size: 12px; font-weight: 600; }
+      .stat .delta.up { color: var(--good); }
+      .stat .delta.down { color: var(--bad); }
+      @media (max-width: 900px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+
+      /* ----- generic card ----- */
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+      }
+      .panel-head {
+        display: flex; align-items: baseline; gap: 12px;
+        margin-bottom: 14px;
+      }
+      .panel-head h2 { font-size: 18px; margin: 0; }
+      .panel-head .sub { color: var(--muted); font-size: 13px; }
+      .panel-head .right { margin-left: auto; }
+
+      /* ----- feature grid ----- */
+      .features {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+      }
+      .feature {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
         padding: 16px;
-        background: #fafbfc;
       }
-      ul li { margin: 4px 0; }
+      .feature .icon {
+        width: 36px; height: 36px; border-radius: 8px;
+        background: var(--accent-soft); color: var(--accent);
+        display: grid; place-items: center; font-weight: 700; margin-bottom: 10px;
+      }
+      .feature h3 { font-size: 15px; }
+      .feature p { color: var(--muted); font-size: 13px; margin: 0; }
+      @media (max-width: 900px) { .features { grid-template-columns: 1fr; } }
+
+      /* ----- two column dashboard row ----- */
+      .row-2 {
+        display: grid; grid-template-columns: 2fr 1fr; gap: 16px;
+      }
+      @media (max-width: 900px) { .row-2 { grid-template-columns: 1fr; } }
+
+      /* ----- table ----- */
+      table.data {
+        width: 100%; border-collapse: collapse; font-size: 13px;
+      }
+      table.data th, table.data td {
+        text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border);
+      }
+      table.data th { color: var(--muted); font-weight: 600; background: #fafbff; }
+      table.data tbody tr:hover { background: #f8faff; }
+      .pill {
+        display: inline-block; font-size: 11px; font-weight: 600;
+        padding: 2px 8px; border-radius: 999px;
+      }
+      .pill.ok    { background: #def7ec; color: #03543f; }
+      .pill.warn  { background: #fef3c7; color: #92400e; }
+      .pill.bad   { background: #fde2e2; color: #9b1c1c; }
+
+      /* ----- chart (svg) ----- */
+      .chart-wrap { padding-top: 8px; }
+      .chart-wrap svg { width: 100%; height: 160px; display: block; }
+      .legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+      .legend span { display: inline-flex; align-items: center; gap: 6px; }
+      .legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+      /* ----- pricing ----- */
+      .pricing {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+      }
+      .price-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 22px;
+        display: flex; flex-direction: column; gap: 10px;
+        position: relative;
+      }
+      .price-card.popular {
+        border-color: var(--accent);
+        box-shadow: 0 8px 24px rgba(67, 97, 238, 0.12);
+      }
+      .price-card .tier { font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px; }
+      .price-card .amount { font-size: 30px; font-weight: 800; }
+      .price-card .amount small { font-size: 13px; font-weight: 500; color: var(--muted); }
+      .price-card ul { list-style: none; padding: 0; margin: 6px 0 16px; font-size: 13px; }
+      .price-card li { padding: 4px 0; color: var(--ink); }
+      .price-card li::before { content: "✓"; color: var(--good); margin-right: 8px; }
+      .price-card .buy {
+        margin-top: auto;
+        padding: 10px 14px; border: 0; border-radius: 8px;
+        background: var(--ink); color: white; font-weight: 600; cursor: pointer;
+      }
+      .price-card.popular .buy { background: var(--accent); }
+      .price-card .badge-popular {
+        position: absolute; top: -10px; right: 14px;
+        background: var(--accent); color: white;
+        font-size: 11px; padding: 3px 8px; border-radius: 999px; font-weight: 600;
+      }
+      @media (max-width: 900px) { .pricing { grid-template-columns: 1fr; } }
+
+      /* ----- form ----- */
+      form.signup { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+      form.signup .full { grid-column: 1 / -1; }
+      form.signup label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; font-weight: 600; }
+      form.signup input, form.signup select, form.signup textarea {
+        width: 100%; padding: 8px 10px;
+        border: 1px solid var(--border); border-radius: 6px;
+        font: inherit; background: white; color: var(--ink);
+      }
+      form.signup textarea { min-height: 80px; resize: vertical; }
+      form.signup .check { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+      form.signup .submit {
+        padding: 10px 16px; background: var(--accent); color: white;
+        border: 0; border-radius: 8px; font-weight: 600; cursor: pointer;
+      }
+
+      /* ----- testimonial / quote ----- */
+      .testimonial {
+        display: grid; grid-template-columns: 64px 1fr; gap: 16px;
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: 12px; padding: 20px;
+      }
+      .testimonial .avatar {
+        width: 64px; height: 64px; border-radius: 50%;
+        background: linear-gradient(135deg, #ffd23f, #f97316);
+        display: grid; place-items: center; color: white; font-weight: 700; font-size: 20px;
+      }
+      .testimonial blockquote {
+        margin: 0; font-size: 16px; font-style: italic; color: var(--ink);
+      }
+      .testimonial .who {
+        margin-top: 8px; font-size: 13px; color: var(--muted);
+      }
+
+      /* ----- code block ----- */
+      pre.code {
+        background: #0f172a; color: #e2e8f0; border-radius: 10px;
+        padding: 16px; overflow-x: auto; font-size: 13px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      pre.code .k { color: #93c5fd; }
+      pre.code .s { color: #fcd34d; }
+      pre.code .c { color: #6b7280; font-style: italic; }
+      pre.code .f { color: #a78bfa; }
+
+      /* ----- FAQ ----- */
+      details.faq {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: 10px; padding: 12px 16px; margin-bottom: 8px;
+      }
+      details.faq summary {
+        cursor: pointer; font-weight: 600; outline: none;
+      }
+      details.faq[open] summary { color: var(--accent); }
+      details.faq p { color: var(--muted); margin: 8px 0 0; font-size: 14px; }
+
+      /* ----- gallery ----- */
+      .gallery {
+        display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+      }
+      .gallery .tile {
+        aspect-ratio: 1 / 1;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #c7d2fe, #fbcfe8);
+        display: grid; place-items: center;
+        color: white; font-weight: 700; font-size: 18px;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+      }
+      .gallery .tile:nth-child(2) { background: linear-gradient(135deg, #a7f3d0, #60a5fa); }
+      .gallery .tile:nth-child(3) { background: linear-gradient(135deg, #fde68a, #f97316); }
+      .gallery .tile:nth-child(4) { background: linear-gradient(135deg, #f9a8d4, #a78bfa); }
+      .gallery .tile:nth-child(5) { background: linear-gradient(135deg, #fca5a5, #f59e0b); }
+      .gallery .tile:nth-child(6) { background: linear-gradient(135deg, #99f6e4, #6366f1); }
+      .gallery .tile:nth-child(7) { background: linear-gradient(135deg, #d8b4fe, #ec4899); }
+      .gallery .tile:nth-child(8) { background: linear-gradient(135deg, #93c5fd, #1f2937); }
+      @media (max-width: 900px) { .gallery { grid-template-columns: repeat(2, 1fr); } }
+
+      /* ----- footer ----- */
+      footer.foot {
+        margin-top: 48px;
+        padding: 24px;
+        padding-right: calc(var(--gutter) + 24px);
+        border-top: 1px solid var(--border);
+        background: var(--surface);
+        display: grid; grid-template-columns: 2fr repeat(3, 1fr); gap: 24px;
+        font-size: 13px;
+      }
+      footer.foot h5 {
+        font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em;
+        color: var(--muted); margin: 0 0 8px;
+      }
+      footer.foot ul { list-style: none; padding: 0; margin: 0; }
+      footer.foot li { padding: 3px 0; }
+      footer.foot .legal { color: var(--muted); }
+      @media (max-width: 900px) {
+        footer.foot { grid-template-columns: 1fr; padding-right: 24px; }
+      }
     </style>
   </head>
   <body>
-    <header>
-      <h1>dom-critique demo</h1>
-      <p class="lede">Click the floating speech-bubble button (bottom-right) to enter comment mode, then click any element on this page.</p>
+    <header class="topnav" role="banner">
+      <div class="brand">
+        <div class="dot" aria-hidden="true"></div>
+        <span>Lumen Analytics</span>
+      </div>
+      <nav aria-label="Primary">
+        <a href="#" class="active">Overview</a>
+        <a href="#">Reports</a>
+        <a href="#">Customers</a>
+        <a href="#">Settings</a>
+      </nav>
+      <a href="#" class="cta">Upgrade</a>
     </header>
 
-    <section id="intro">
-      <h2>Introduction</h2>
-      <p>This page exists to help you exercise the library. Try commenting on different kinds of elements: headings, paragraphs, list items, code, even the card below.</p>
-      <blockquote>"The best UI for code review is one that lives next to the code itself."</blockquote>
-    </section>
+    <div class="shell">
+      <aside class="sidebar" aria-label="Section navigation">
+        <h4>Workspace</h4>
+        <ul>
+          <li><a href="#hero" class="active">Dashboard <span class="badge">new</span></a></li>
+          <li><a href="#metrics">Metrics</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#orders">Orders</a></li>
+          <li><a href="#chart">Traffic</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+        </ul>
+        <h4>Account</h4>
+        <ul>
+          <li><a href="#form">Profile</a></li>
+          <li><a href="#faq">Help</a></li>
+          <li><a href="#gallery">Brand kit</a></li>
+        </ul>
+      </aside>
 
-    <section id="features">
-      <h2>Features to try</h2>
-      <ul>
-        <li>Click an element while in comment mode to attach a comment.</li>
-        <li>Open the sidebar entry to jump to the original element.</li>
-        <li>Edit or delete an existing comment from the sidebar.</li>
-        <li>Press <code>Copy Markdown</code> to copy every comment to the clipboard.</li>
-        <li>Reload the page — comments persist via <code>localStorage</code>.</li>
-      </ul>
-    </section>
+      <main class="content" role="main">
+        <!-- HERO -->
+        <section id="hero" class="hero" aria-labelledby="hero-title">
+          <div class="ribbon">Beta</div>
+          <h1 id="hero-title">Comment on the web like you comment on Google Docs.</h1>
+          <p>
+            Lumen Analytics turns any page into a collaborative canvas. Pin
+            feedback to elements, ship it as Markdown, and review changes
+            without ever leaving your tab.
+          </p>
+          <div class="actions">
+            <button type="button" class="btn-primary">Start free trial</button>
+            <button type="button" class="btn-ghost">Watch 2-min demo</button>
+          </div>
+        </section>
 
-    <section id="card">
-      <h2>A card</h2>
-      <div class="card">
-        <p>This is a card. Try anchoring a comment to the entire card or to just this paragraph inside it.</p>
-        <p>Nested elements should still produce stable, unique selectors.</p>
+        <!-- STATS -->
+        <section id="metrics" aria-label="Key metrics" class="stats">
+          <div class="stat">
+            <div class="label">MRR</div>
+            <div class="value">$48,210</div>
+            <div class="delta up">▲ 12.4% vs last month</div>
+          </div>
+          <div class="stat">
+            <div class="label">Active users</div>
+            <div class="value">9,184</div>
+            <div class="delta up">▲ 3.1%</div>
+          </div>
+          <div class="stat">
+            <div class="label">Churn</div>
+            <div class="value">2.3%</div>
+            <div class="delta down">▼ 0.4%</div>
+          </div>
+          <div class="stat">
+            <div class="label">NPS</div>
+            <div class="value">62</div>
+            <div class="delta up">▲ 5</div>
+          </div>
+        </section>
+
+        <!-- FEATURES -->
+        <section id="features" aria-labelledby="features-h">
+          <div class="panel-head">
+            <h2 id="features-h">Why teams choose Lumen</h2>
+            <span class="sub">Built for product, design, and engineering.</span>
+          </div>
+          <div class="features">
+            <article class="feature">
+              <div class="icon" aria-hidden="true">⚡</div>
+              <h3>Pin to anything</h3>
+              <p>Attach comments to any DOM node — even text inside a custom component.</p>
+            </article>
+            <article class="feature">
+              <div class="icon" aria-hidden="true">🧭</div>
+              <h3>Stable selectors</h3>
+              <p>We generate selectors that survive minor refactors and class-name churn.</p>
+            </article>
+            <article class="feature">
+              <div class="icon" aria-hidden="true">📋</div>
+              <h3>Markdown export</h3>
+              <p>Copy every comment as a single Markdown blob, ready to paste into a PR.</p>
+            </article>
+            <article class="feature">
+              <div class="icon" aria-hidden="true">🛟</div>
+              <h3>Offline-first</h3>
+              <p>Comments live in <code>localStorage</code> so they survive reloads and flaky networks.</p>
+            </article>
+            <article class="feature">
+              <div class="icon" aria-hidden="true">🧩</div>
+              <h3>Framework friendly</h3>
+              <p>React fiber introspection enriches each comment with component & file info.</p>
+            </article>
+            <article class="feature">
+              <div class="icon" aria-hidden="true">🔐</div>
+              <h3>Zero backend</h3>
+              <p>No accounts, no servers. Drop one script tag and start commenting.</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- DASHBOARD ROW: TABLE + CHART -->
+        <section id="orders" class="row-2">
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Recent orders</h2>
+              <span class="sub">Last 7 days</span>
+              <a href="#" class="right">View all →</a>
+            </div>
+            <table class="data">
+              <thead>
+                <tr>
+                  <th>Order</th>
+                  <th>Customer</th>
+                  <th>Plan</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>#10293</td>
+                  <td>Aoi Tanaka</td>
+                  <td>Team</td>
+                  <td>$48.00</td>
+                  <td><span class="pill ok">Paid</span></td>
+                </tr>
+                <tr>
+                  <td>#10292</td>
+                  <td>Marcus Lin</td>
+                  <td>Pro</td>
+                  <td>$24.00</td>
+                  <td><span class="pill warn">Pending</span></td>
+                </tr>
+                <tr>
+                  <td>#10291</td>
+                  <td>Priya Raman</td>
+                  <td>Enterprise</td>
+                  <td>$320.00</td>
+                  <td><span class="pill ok">Paid</span></td>
+                </tr>
+                <tr>
+                  <td>#10290</td>
+                  <td>Lukas Becker</td>
+                  <td>Pro</td>
+                  <td>$24.00</td>
+                  <td><span class="pill bad">Refunded</span></td>
+                </tr>
+                <tr>
+                  <td>#10289</td>
+                  <td>Sofia Nuñez</td>
+                  <td>Team</td>
+                  <td>$48.00</td>
+                  <td><span class="pill ok">Paid</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div id="chart" class="panel">
+            <div class="panel-head">
+              <h2>Traffic</h2>
+              <span class="sub">Sessions</span>
+            </div>
+            <div class="chart-wrap" role="img" aria-label="Sparkline of weekly sessions">
+              <svg viewBox="0 0 300 160" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="g1" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stop-color="#4361ee" stop-opacity="0.5"/>
+                    <stop offset="100%" stop-color="#4361ee" stop-opacity="0"/>
+                  </linearGradient>
+                </defs>
+                <path d="M0,120 L40,90 L80,100 L120,60 L160,75 L200,40 L240,55 L300,20 L300,160 L0,160 Z" fill="url(#g1)"/>
+                <path d="M0,120 L40,90 L80,100 L120,60 L160,75 L200,40 L240,55 L300,20" fill="none" stroke="#4361ee" stroke-width="2"/>
+                <g fill="#4361ee">
+                  <circle cx="40"  cy="90"  r="3"/>
+                  <circle cx="120" cy="60"  r="3"/>
+                  <circle cx="200" cy="40"  r="3"/>
+                  <circle cx="300" cy="20"  r="3"/>
+                </g>
+              </svg>
+            </div>
+            <div class="legend">
+              <span><i style="background:#4361ee"></i>This week</span>
+              <span><i style="background:#cbd5e1"></i>Last week</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- PRICING -->
+        <section id="pricing" aria-labelledby="pricing-h">
+          <div class="panel-head">
+            <h2 id="pricing-h">Simple, predictable pricing</h2>
+            <span class="sub">Cancel any time.</span>
+          </div>
+          <div class="pricing">
+            <article class="price-card">
+              <span class="tier">Hobby</span>
+              <div class="amount">$0<small> /mo</small></div>
+              <ul>
+                <li>Up to 100 comments</li>
+                <li>Markdown export</li>
+                <li>Single user</li>
+              </ul>
+              <button type="button" class="buy">Get started</button>
+            </article>
+            <article class="price-card popular">
+              <span class="badge-popular">Popular</span>
+              <span class="tier">Pro</span>
+              <div class="amount">$24<small> /mo</small></div>
+              <ul>
+                <li>Unlimited comments</li>
+                <li>React component context</li>
+                <li>Up to 5 collaborators</li>
+                <li>Priority support</li>
+              </ul>
+              <button type="button" class="buy">Choose Pro</button>
+            </article>
+            <article class="price-card">
+              <span class="tier">Enterprise</span>
+              <div class="amount">Talk<small> to sales</small></div>
+              <ul>
+                <li>SSO / SAML</li>
+                <li>Audit log & retention</li>
+                <li>Dedicated CSM</li>
+              </ul>
+              <button type="button" class="buy">Contact us</button>
+            </article>
+          </div>
+        </section>
+
+        <!-- TESTIMONIAL + CODE -->
+        <section class="row-2">
+          <div class="testimonial">
+            <div class="avatar" aria-hidden="true">AT</div>
+            <div>
+              <blockquote>
+                “We replaced two Slack channels and a Notion doc with Lumen.
+                Reviews finally feel like a conversation about the product
+                itself, not a screenshot quiz.”
+              </blockquote>
+              <div class="who">— Aoi Tanaka, Head of Design at Northwind</div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h2>Drop in a script</h2>
+              <span class="sub">It's that simple.</span>
+            </div>
+<pre class="code"><span class="c">// 1. Add the script</span>
+<span class="k">&lt;script</span> src=<span class="s">"https://cdn.example.com/dom-critique.global.min.js"</span><span class="k">&gt;&lt;/script&gt;</span>
+
+<span class="c">// 2. Mount</span>
+<span class="k">&lt;script&gt;</span>
+  <span class="f">DomCritique</span>.<span class="f">mount</span>();
+<span class="k">&lt;/script&gt;</span></pre>
+          </div>
+        </section>
+
+        <!-- FORM -->
+        <section id="form" class="panel">
+          <div class="panel-head">
+            <h2>Request early access</h2>
+            <span class="sub">We'll get back within one business day.</span>
+          </div>
+          <form class="signup" onsubmit="event.preventDefault();">
+            <div>
+              <label for="f-name">Full name</label>
+              <input id="f-name" name="name" placeholder="Ada Lovelace" required />
+            </div>
+            <div>
+              <label for="f-email">Work email</label>
+              <input id="f-email" type="email" name="email" placeholder="ada@analytical.engine" required />
+            </div>
+            <div>
+              <label for="f-company">Company</label>
+              <input id="f-company" name="company" placeholder="Babbage Bros." />
+            </div>
+            <div>
+              <label for="f-size">Team size</label>
+              <select id="f-size" name="size">
+                <option>1–5</option>
+                <option>6–20</option>
+                <option>21–100</option>
+                <option>100+</option>
+              </select>
+            </div>
+            <div class="full">
+              <label for="f-notes">What are you hoping to use it for?</label>
+              <textarea id="f-notes" name="notes" placeholder="A short note helps us route you correctly."></textarea>
+            </div>
+            <label class="check full">
+              <input type="checkbox" /> Subscribe me to product updates (no spam, monthly).
+            </label>
+            <div class="full">
+              <button type="submit" class="submit">Request invite</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- GALLERY -->
+        <section id="gallery">
+          <div class="panel-head">
+            <h2>From the brand kit</h2>
+            <span class="sub">Click any tile to comment on it.</span>
+          </div>
+          <div class="gallery">
+            <div class="tile" role="img" aria-label="Lumen primary">L</div>
+            <div class="tile" role="img" aria-label="Lumen sky">S</div>
+            <div class="tile" role="img" aria-label="Lumen amber">A</div>
+            <div class="tile" role="img" aria-label="Lumen rose">R</div>
+            <div class="tile" role="img" aria-label="Lumen flame">F</div>
+            <div class="tile" role="img" aria-label="Lumen mint">M</div>
+            <div class="tile" role="img" aria-label="Lumen orchid">O</div>
+            <div class="tile" role="img" aria-label="Lumen night">N</div>
+          </div>
+        </section>
+
+        <!-- FAQ -->
+        <section id="faq">
+          <div class="panel-head">
+            <h2>Frequently asked</h2>
+            <span class="sub">Questions we get a lot.</span>
+          </div>
+          <details class="faq" open>
+            <summary>Where are the comments stored?</summary>
+            <p>By default, in the visitor's <code>localStorage</code> under a key derived from the page path. You can override the key when you call <code>mount()</code>.</p>
+          </details>
+          <details class="faq">
+            <summary>Does it work with single-page apps?</summary>
+            <p>Yes — we observe the DOM and re-resolve selectors when nodes mount or unmount. Stable IDs and <code>data-testid</code> attributes give the best results.</p>
+          </details>
+          <details class="faq">
+            <summary>Can I theme the UI?</summary>
+            <p>The widget renders inside a Shadow DOM, so it never collides with your styles. Theming hooks are on our roadmap.</p>
+          </details>
+          <details class="faq">
+            <summary>How do I export comments to a PR?</summary>
+            <p>Click <strong>Copy Markdown</strong> in the floating toolbar. Each comment becomes a heading with the selector, ARIA attributes, and React source location attached.</p>
+          </details>
+        </section>
+      </main>
+    </div>
+
+    <footer class="foot" role="contentinfo">
+      <div>
+        <div class="brand" style="color: var(--ink); font-weight: 700; display: flex; align-items: center; gap: 8px;">
+          <div style="width: 22px; height: 22px; border-radius: 6px; background: linear-gradient(135deg, #4361ee, #8b5cf6);"></div>
+          Lumen Analytics
+        </div>
+        <p class="legal">© 2026 Lumen Labs. A demo page for dom-critique.</p>
       </div>
-    </section>
+      <div>
+        <h5>Product</h5>
+        <ul>
+          <li><a href="#">Features</a></li>
+          <li><a href="#">Pricing</a></li>
+          <li><a href="#">Changelog</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <ul>
+          <li><a href="#">About</a></li>
+          <li><a href="#">Careers</a></li>
+          <li><a href="#">Press</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5>Legal</h5>
+        <ul>
+          <li><a href="#">Privacy</a></li>
+          <li><a href="#">Terms</a></li>
+          <li><a href="#">DPA</a></li>
+        </ul>
+      </div>
+    </footer>
 
-    <script src="https://github.com/fumieval/dom-critique/releases/download/v0.0.3/dom-critique.global.min.js"></script>
-    <script>
-      window.__critique = DomCritique.mount();
+    <script type="module">
+      import { mount } from "../dist/index.js";
+      window.__critique = mount();
     </script>
   </body>
 </html>
