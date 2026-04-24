@@ -247,14 +247,14 @@ textarea {
   overflow: visible;
 }
 .connector-layer line {
-  stroke: #b9c1cb;
-  stroke-width: 1;
+  stroke: #f5b800;
+  stroke-width: 2.5;
   fill: none;
   transition: stroke 0.15s ease, stroke-width 0.15s ease;
 }
 .connector-layer line.emphasized {
-  stroke: #1f6feb;
-  stroke-width: 1.5;
+  stroke: #f5b800;
+  stroke-width: 3;
   stroke-dasharray: 4 3;
 }
 
@@ -286,6 +286,8 @@ textarea {
   cursor: pointer;
 }
 .card:hover {
+  border-width: 2px;
+  padding: 7px 9px 9px;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.14);
   transform: translateY(-1px);
 }

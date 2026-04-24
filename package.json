@@ -22,6 +22,7 @@
     "README.md"
   ],
   "scripts": {
+    "dev": "bun demo/index.html",
     "build": "npm run build:types && npm run build:bundle",
     "build:types": "tsc",
     "build:bundle": "node scripts/bundle.mjs",
